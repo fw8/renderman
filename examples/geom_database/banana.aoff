@@ -1,0 +1,16 @@
+
+
+name		banana
+description	Banana made on Frank Crow's U. Utah surface design system
+copyright	(c) Ohio State Univ. - ok to distribute if copyright appears
+type		polygon 
+
+# Property list for this object
+
+# Prop.          data type    format      filename or default data
+#-------         ---------    ------      ------------------------
+
+geometry	indexed_poly	fff		banana.geom
+vertex_order	default		s		clockwise 
+polygon_colors	default		fff		1 0.8 0 
+back_faces	default		s		cull 

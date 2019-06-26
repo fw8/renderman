@@ -1,0 +1,14 @@
+This directory contains a collection of 3d objects in "OFF" format, which
+were posted to USENET by Randi J. Rost.  The program "geom3d.c" in the
+parect directory is a simple filter which will read the ".geom" part of
+an object, and write a correcponding wireframe 3d-plot file.
+
+Documentation is in two files:
+
+off.ms    - original documentation:
+            To print this document, use
+            pic off.ms | tbl | troff -ms
+
+off2.ms   - documentation without "pic" macros:
+            To print this document, use
+            tbl off2.ms | troff -ms

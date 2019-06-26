@@ -1,0 +1,2 @@
+rm -f Makefile
+automake Ri*.c Admin*.c Math*.c Misc*.c Prim*.c Intersect*.c Trace*.c  Screen*.c Shader*.c Pic*.c Stat*.c > Makefile

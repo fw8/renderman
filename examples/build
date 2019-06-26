@@ -1,0 +1,1 @@
+  cc -g -o $1 -I../include $1.c camera.c -L../lib -lsh -lri -L../lib -lrle -lm

@@ -1,0 +1,44 @@
+:
+# Shellscript zum Entfernen eines Shaders aus der Shaderbibliothek
+#
+#-------------------------------------------------------------------------
+#
+# Aufruf: delsh shadername shaderlib  (jeweils nur Name, keine Endung)
+#
+#-------------------------------------------------------------------------
+#
+trap 'rm -f initsh.[co] ; exit 1 ' 1 2 15
+#
+USAGE="usage : delsh shadername shaderlib"
+
+
+if test $# != 2
+then
+    echo $USAGE 1>&2
+    exit 1
+fi
+
+ar d lib$2.a $1.o
+ranlib lib$2.a
+rm -f initsh.[co]
+echo 'shader deleted, generating new init-file.'
+echo 'void RiBegin(n) char *n; {' > initsh.c
+echo '_init_all_files();' >> initsh.c
+echo 'void RiBegin(n) char *n; {' > initsh.c
+nm -p lib$2.a | egrep 'T *__init_' | sed -e 's/^.*T *_*\(.*\)/    _\1 ();/' >> initsh.c
+echo 'RmBegin(n); }' >> initsh.c
+cc -c -O initsh.c 
+ar r lib$2.a initsh.o
+rm -f initsh.[co]
+echo 'library now contains: '
+for i in `ar t lib$2.a`
+do
+if test $i != "initsh.o"
+then
+if test $i != "__.SYMDEF"
+then
+echo `basename $i .o`
+fi
+fi
+done
+exit 0

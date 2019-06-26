@@ -1,0 +1,23 @@
+:
+cd shader
+rm -f libsh.a
+for i in `ls *.sh`
+do
+  echo compiling $i
+  ../sc $i > `basename $i .sh`.c
+  cc -c -O -w -I.. -I../../src `basename $i .sh`.c
+done
+ar r libsh.a *.o
+ranlib libsh.a
+rm -f initsh.[co] *.[co]
+echo 'generating new init-file.'
+echo 'void RiBegin(n) char *n; {' > initsh.c
+echo '_init_all_files();' >> initsh.c
+nm -p libsh.a | egrep 'T *__init_' | sed -e 's/^.*T *_*\(.*\)/    _\1 ();/' >> initsh.c
+echo 'RmBegin(n); }' >> initsh.c
+cc -c -O initsh.c
+ar r libsh.a initsh.o
+mv libsh.a ..
+ranlib ../libsh.a
+rm -f initsh.[co]
+exit 0

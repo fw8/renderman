@@ -1,0 +1,20 @@
+
+name		teapot
+author		Martin Newell
+description	the famous teapot
+copyright	public domain
+type		polygon
+
+# Property list for this object
+
+# Prop.          data type    format      filename or default data
+#-------         ---------    ------      ------------------------
+
+geometry	indexed_poly	fff		teapot.geom
+vertex_order	default		s		clockwise 
+polygon_colors	default		fff		0.7 0.35 0 
+back_faces	default		s		reverse 
+
+#
+# Translated to OFF format by Randi J. Rost, 30-August-1988
+#

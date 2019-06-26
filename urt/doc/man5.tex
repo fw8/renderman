@@ -1,0 +1,145 @@
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 18:06:10 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+\documentstyle[troffman]{article}
+\begin{document}
+%
+% input file: rle.5
+%
+% Copyright (c) 1986, University of Utah
+\phead{RLE}{5}{9/14/82}
+ 5
+% $Header: /usr/users/spencer/src/urt/man/man5/RCS/rle.5,v 3.0 90/08/03 15:33:11 spencer Exp $
+\shead{NAME}
+rle -- Run length encoded file format produced by the rle library
+\shead{DESCRIPTION}
+The output file format is (note: all words are 16 bits, and in PDP-11 byte 
+order):
+\begin{TPlist}{{\bf Word} 0}
+\item[{{\bf Word} 0}]
+A "magic" number 0xcc52.  (Byte order 0x52, 0xcc.)
+\item[{{\bf Words} 1-4}]
+The structure (chars saved in PDP-11 order)
+
+\nofill
+\{
+    short   xpos,                       /* Lower left corner
+            ypos,
+            xsize,                      /* Size of saved box
+            ysize;
+\}
+\fill
+\item[{{\bf Byte} 10}]
+{\it (flags)}
+The following flags are defined:
+\ind{1\parindent} 0.5i
+\item[{{\it H\_CLEARFIRST}}]
+(0x1) If set, clear the frame buffer to background color before restoring.
+\item[{{\it H\_NO\_BACKGROUND}}]
+(0x2) If set, no background color is supplied.  If
+{\it H\_CLEARFIRST}
+is also set, it should be ignored (or alternatively, a clear-to-black
+operation could be performed).
+\item[{{\it H\_ALPHA}}]
+(0x4) If set, an alpha channel is saved as color channel -1.  The alpha
+channel does not contribute to the count of colors in
+{\it ncolors}{\rm .}
+\item[{{\it H\_COMMENT}}]
+(0x8) If set, comments will follow the color map in the header.
+\ind{0\parindent}
+\item[{{\bf Byte} 11}]
+{\it (ncolors)}
+Number of color channels present.  0 means load only the color map (if
+present), 1 means a B\&W image, 3 means a normal color image.
+\item[{{\bf Byte} 12}]
+{\it (pixelbits)}
+Number of bits per pixel, per color channel.  Values greater than 8
+currently will not work.
+\item[{{\bf Byte} 13}]
+{\it (ncmap)}
+Number of color map channels present.  Need not be identical to
+{\it ncolors}{\rm .}
+If this is non-zero, the color map follows immediately after the background
+colors.
+\item[{{\bf Byte} 14}]
+{\it (cmaplen)}
+Log base 2 of the number of entries in the color map for each color channel.
+I.e., would be 8 for a color map with 256 entries.
+\item[{{\bf Bytes} 15--...}]
+The background color.  There are 
+{\it ncolors}
+bytes of background color.  If
+{\it ncolors}
+is even, an extra padding byte is inserted to end on a 16 bit boundary.
+The background color is only present if
+{\it H\_NO\_BACKGROUND}
+is not set in
+{\it flags}{\rm .}
+IF
+{\it H\_NO} BACKGROUND
+is set, there is a single filler byte.  Background color is ignored, but
+present, if
+{\it H\_CLEARFIRST}
+is not set in
+{\it flags}{\rm .}
+
+If 
+{\it ncmap}
+is non-zero, then the color map will follow as
+{\it ncmap}{\rm *2\^{}}{\it cmaplen}
+16 bit words.  The color map data is left justified in each word.
+
+If the
+{\it H\_COMMENT}
+flag is set, a set of comments will follow.  The first 16 bit word
+gives the length of the comments in bytes.  If this is odd, a filler
+byte will be appended to the comments.  The comments are interpreted
+as a sequence of null terminated strings which should be, by
+convention, of the form
+{\it name}{\rm =}{\it value}{\rm ,}
+or just
+{\it name}{\rm .}
+
+Following the setup information is the Run Length Encoded image.  Each
+instruction consists of an opcode, a datum and possibly one or
+more following words (all words are 16 bits).  The opcode is encoded in the
+first byte of the instruction word.  Instructions come in either a short or
+long form.  In the short form, the datum is in the second byte of the
+instruction word; in the long form, the datum is a 16 bit value in the word
+following the instruction word.  Long form instructions are distinguished by
+having the 0x40 bit set in the opcode byte.
+The instruction opcodes are:
+\item[{{\bf SkipLines} (1)}]
+The datum is an unsigned number to be added to the current Y position.
+\item[{{\bf SetColor} (2)}]
+The datum indicates which color is to be loaded with the data described by the
+following ByteData and RunData instructions.  Typically,
+0red, 1green, 2blue.  The
+operation also resets the X position to the initial X (i.e. a carriage return
+operation is performed).
+\item[{{\bf SkipPixels} (3)}]
+The datum is an unsigned number to be added to the current X
+position.
+\item[{{\bf ByteData} (5)}]
+The datum is one less than the number of bytes of color data following.  If the
+number of bytes is odd, a filler byte will be appended to the end of the byte
+string to make an integral number of 16-bit words.  The X position is
+incremented to follow the last byte of data.
+\item[{{\bf RunData} (6)}]
+The datum is one less than the run length.  The following word contains (in its
+lower 8 bits) the color of the run.  The X position is incremented to follow
+the last byte in the run.
+\item[{{\bf EOF} (7)}]
+This opcode indicates the logical end of image data.  A physical
+end-of-file will also serve as well.  The 
+{\bf EOF}
+opcode may be used to concatenate several images in a single file.
+\end{TPlist}\shead{SEE ALSO}
+{\it librle(3)}
+\shead{AUTHOR}
+\par
+Spencer W. Thomas, Todd Fuqua
+\end{document}

@@ -1,0 +1,38 @@
+This is TeX, C Version 3.0 (format=lplain 90.8.10)  25 JAN 1994 14:05
+**&latex man5
+(man5.tex
+LaTeX Version 2.09 <9 Jan 1990>
+(/usr/local/tex/latex/macros/article.sty
+Document Style `article'. Modified at TUW, 30 May 1989
+(/usr/local/tex/latex/macros/art10.sty)
+\c@part=\count79
+\c@section=\count80
+\c@subsection=\count81
+\c@subsubsection=\count82
+\c@paragraph=\count83
+\c@subparagraph=\count84
+\c@figure=\count85
+\c@table=\count86
+) (troffman.sty
+\singlespacing=\dimen99
+\parmargin=\skip41
+)
+No file man5.aux.
+[NAME]
+[DESCRIPTION]
+[1
+
+]
+[SEE ALSO]
+[AUTHOR]
+[2] (man5.aux) ) 
+Here is how much of TeX's memory you used:
+ 176 strings out of 1357
+ 1634 string characters out of 8287
+ 32626 words of memory out of 65531
+ 2128 multiletter control sequences out of 3000
+ 18996 words of font info for 72 fonts, out of 36000 for 120
+ 14 hyphenation exceptions out of 307
+ 12i,5n,15p,166b,157s stack positions out of 200i,40n,60p,2000b,2000s
+
+Output written on man5.dvi (2 pages, 6452 bytes).

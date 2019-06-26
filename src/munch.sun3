@@ -1,0 +1,20 @@
+#! /bin/sh
+
+# create an initialization procedure from a list of .o files
+
+echo '/* Do not modify this file.  It is created automatically by "munch". */'
+echo 'void _init_all_files () {'
+nm -p $* | egrep 'T *__?init_' | sed -e 's/^.*T *_*\(.*\)/    _\1 ();/'
+echo '}'
+
+echo 'void _exit_all_files () {'
+nm -p $* | egrep 'T *__?exit' | sed -e 's/^.*T *_*\(.*\)/    _\1 ();/'
+echo '}'
+
+echo 'void _begin_all_files () {'
+nm -p $* | egrep 'T *__?begin' | sed -e 's/^.*T *_*\(.*\)/    _\1 ();/'
+echo '}'
+
+echo 'void _end_all_files () {'
+nm -p $* | egrep 'T *__?end' | sed -e 's/^.*T *_*\(.*\)/    _\1 ();/'
+echo '}'

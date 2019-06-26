@@ -1,0 +1,31 @@
+:
+# Shellscript zum Auflisten des Inhaltes einer Shaderbibliothek
+#
+#-------------------------------------------------------------------------
+#
+# Aufruf: listsh shaderlib  (nur Name, keine Endung)
+#
+#-------------------------------------------------------------------------
+#
+trap 'rm -f initsh.[co] ; exit 1 ' 1 2 15
+#
+USAGE="usage : listsh shaderlib"
+
+
+if test $# != 1
+then
+    echo $USAGE 1>&2
+    exit 1
+fi
+
+echo "shaders on board:"
+for i in `ar t lib$1.a`
+do
+if test $i != "initsh.o"
+then
+if test $i != "__.SYMDEF"
+then
+echo `basename $i .o`
+fi
+fi
+done

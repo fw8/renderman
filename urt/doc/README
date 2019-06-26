@@ -1,0 +1,9 @@
+Man pages for URT in LaTeX.
+Conversion by tr2tex.
+See the accompanying style "troffman.sty"
+All man pages included EXCEPT:
+  getx11.1      \
+  rledither.1   | man1.tex
+  rletoabA60.1  /
+are included. If someone gets these into LaTeX using troffman.sty,
+please mail to jdm5548@diamond.tamu.edu.

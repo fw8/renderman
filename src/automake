@@ -1,0 +1,138 @@
+:
+# Bourne-Shellscript
+#
+#------------------------------------------------------------------------------
+#	automake erstellt automatisch ein Makefile fuer die in der
+#	Kommandozeile uebergenbenen Argumente (C-Sources). Mit der
+#	Option -p kann auch der Name des Programms angegeben werden.
+#
+#	Aufruf : automake [-p progname ] C-Sources ..
+#------------------------------------------------------------------------------
+#
+# Bei Eintreffen von 1: hangup, 2: DEL, 15: kill  temporaere Files
+# loeschen und Programm beenden:
+#
+trap 'rm -f tmp$$ ; exit 1 ' 1 2 15
+#
+PROGNAME="PROGNAME"	# PROGNAME vorbesetzen
+OBJECTS=""		# OBJECTS vorbesetzen
+SUFFIX=".c"		# Extension Filename
+SUCHSTR="^#include[         ]*\""	# Suchstring
+USAGE="usage : $0 [-p progname ] C-Sources ..."
+while test "$1" != ""
+do
+  case "$1" in
+  -p) case "$2" in
+      *${SUFFIX})
+        echo "nach -p Quelle nicht erlaubt - Progname erforderlich !"
+        echo $USAGE 1>&2
+        exit;
+        ;;
+      *)
+        PROGNAME=$2
+        shift;shift
+        ;;
+      esac
+      ;;
+  -*) echo "$0 : unbekannte Option $1" 1>&2
+      echo $USAGE 1>&2
+      exit 1;
+      ;;
+
+  *${SUFFIX})
+    QUELLFILE=$1
+    # Wandle Source-Namen in Object-Name um
+    #
+    BN=`basename $QUELLFILE ${SUFFIX} `
+    OBJECTFILE=${BN}.o
+    OBJECTS="$OBJECTS $OBJECTFILE"
+
+    # grep sucht alle Muster mit #include " am Zeilenanfang 
+    # awk mit Feldtrenner \" findet im 2. Feld das Include-File
+    #
+    DEPENDS=`grep "$SUCHSTR"  $QUELLFILE|awk -F\" ' { print $2 } ' `
+    #
+    MORE=$DEPENDS
+    while test "$MORE"
+    do
+      SAVE=
+      for INCFILE in $MORE
+      do
+        # echo "INCFILE: $INCFILE" 1>&2
+        if test ! -r $INCFILE
+        then
+          echo "Warnung: $INCFILE nicht vorhanden !" 1>&2
+          break
+        fi
+        SUB=`grep "$SUCHSTR"  $INCFILE|awk -F\" ' { print $2 } ' `
+        # echo "SUB: $SUB" 1>&2
+        for VAR1 in $SUB
+        do
+          VAR2=`echo $DEPENDS|grep "$VAR1"`
+          if test "$VAR2"
+          then
+            echo "$VAR1 bereits in Abhaengigkeitsliste" 1>&2
+          else
+            DEPENDS="$DEPENDS $VAR1"
+            # echo "DEPENDS: $DEPENDS" 1>&2
+            SAVE="$SAVE $VAR1"
+          fi
+        done
+        #echo "SAVE: $SAVE" 1>&2
+      done
+      MORE=$SAVE
+    done
+    #
+    # Abhaengigkeitsziele erzeugen
+    #
+    ABHAENGIGKEIT="${OBJECTFILE}: $DEPENDS $QUELLFILE"
+    echo $ABHAENGIGKEIT >> tmp$$
+    echo "	\$(CC) -c \$(CFLAGS) $QUELLFILE" >> tmp$$
+    #
+    shift
+    ;;
+  *)
+    echo "$0 : unbekanntes Argument $1" 1>&2
+    echo $USAGE 1>&2
+    rm tmp$$
+    exit 1
+    ;;
+  esac
+done
+#
+# Makefile erstellen
+echo "#"
+echo "# Makefile fuer die RenderMan Interface Bibliothek"
+echo "#"; echo "#"
+echo "# Die folgenden Pfade sind gegebenenfalls zu \"andern."
+echo "#---------------------------------------------------------------------"
+echo "INCLUDE = /mo2/ip/include"
+echo "LIB = /mo2/ip/lib"
+echo "#---------------------------------------------------------------------"
+echo "CFLAGS = -g -DDEBUG -I$(INCLUDE)"
+echo "OBJ = $OBJECTS"
+echo
+echo "all:libri.a"
+echo "libri.a: \$(OBJ)"
+echo "	-rm -f init.c"
+echo "	./munch \$(OBJ) > init.c"
+echo "	\$(CC) -c init.c \$(CFLAGS)"
+echo "	-rm -f libri.a"
+echo "	ar cq libri.a \$(OBJ) init.o"
+echo "	cp libri.a ../lib"
+echo "	ranlib ../lib/libri.a"
+echo "	cp ri.h ../include"
+echo
+echo "install: libri.a"
+echo "	cp libri.a $(LIB)"
+echo "	ranlib $(LIB)/libri.a"
+echo "	cp ri.h $(INCLUDE)"
+echo
+echo "clean:"
+echo "	rm -f $(OBJ) libri.a init.[co] core"
+echo
+cat tmp$$
+#
+rm tmp$$
+#
+exit 0

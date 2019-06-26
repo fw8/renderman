@@ -1,0 +1,2766 @@
+% URT
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:31 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+\documentstyle[troffman]{article}
+\begin{document}
+%
+% input file: buildmap.3
+%
+% Copyright (c) 1986, University of Utah
+\phead{BUILDMAP}{3}{3/6/85}
+ 3
+\shead{NAME}
+buildmap -- create a color map array from an RLE file header.
+\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\raggedright
+\begin{TPlist}{\bf}
+\item[{\bf}]
+rle\_pixel ** buildmap( the\_hdr, minmap, orig\_gamma, new\_gamma )
+%.PD 0
+\end{TPlist}\par
+\bf
+rle\_hdr * the\_hdr;
+\nwl
+\bf
+int minmap;
+\nwl
+\bf
+double orig\_gamma, new\_gamma;
+%.PD
+\shead{DESCRIPTION}
+The color map in the 
+{\it rle\_hdr}{\rm (3)}
+structure is not in the most easily used form.  The function
+{\it buildmap}
+returns a pointer to a colormap array with certain minimum dimensions,
+making it a little easier to implement color mapping in a program.
+The color map from first argument,
+{\it the\_hdr}{\rm ,}
+is used to build the result.  If no map is present in
+{\it the\_hdr}{\rm ,}
+then an identity map of the minimum size will be returned.
+\par
+The returned color map will have at least
+{\it minmap}
+rows or channels, each of which is at least 256 entries long (so that
+indexing into the color map with an 8 bit 
+{\it rle\_pixel}
+value will always succeed.)
+
+The color map from 
+{\it the\_hdr}
+will be composed with a gamma compensation curve to account for the
+gamma of the display for which the input color map was presumably computed.
+The argument
+{\it orig\_gamma}
+specifies the gamma of the compensation curve.  It would typically be
+the gamma of the original display.
+
+If 
+{\it gamma}
+is 0, then if a picture comment 
+{\it image\_gamma=i\_gamma}
+is present, %
+\it gamma \rm%
+will be set to %
+\it 1.0/i\_gamma\rm%
+.
+Otherwise, if a comment
+{\it display\_gamma=d\_gamma}
+is present, %
+\it gamma \rm%
+will be set to %
+\it d\_gamma\rm%
+.  The gamma
+compensation value for pixel %
+\it i \rm%
+is %
+\it 255*(i/255)\^{}gamma\rm%
+.
+
+If this color map will be used directly for another display, the gamma
+of this new display should be passed in
+{\it new\_gamma}{\rm .}
+
+The returned value is a pointer to an array of pointers to arrays of 
+{\it rle\_pixel}
+values.  It may be doubly indexed in C code, so that if
+{\it cmap}
+is the return value, the RGB color mapping for a pixel
+{\it pixval}
+is
+{\it (cmap[0][pixval],\ cmap[1][pixval],\ cmap[2][pixval])}{\rm .}
+\shead{NOTES}
+Generally, unless the user explicitly specifies the image or original
+display gamma (e.g., as with the %
+\bf --i \rm%
+or %
+\bf --I \rm%
+flags of
+{\it getx11}{\rm (1),}
+you should pass 0 for
+{\it orig\_gamma}{\rm .}
+This lets 
+{\it buildmap}
+use the value from %
+\it the\_hdr\rm%
+, if it is present.
+
+If you are going to use the result of buildmap to generate values to
+be dithered,
+{\it new\_gamma}
+should always be 1.0, and the display gamma (%
+\bf -g \rm%
+in
+{\it getx11}{\rm )}
+should be passed to
+{\it dithermap}{\rm (3).}
+If you are not planning to dither, then pass the
+user supplied display gamma as 
+{\it new\_gamma}{\rm .}
+\shead{SEE ALSO}
+{\it dithermap}{\rm (3),}
+{\it rle\_hdr}{\rm (3),}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+\shead{AUTHOR}
+Spencer W. Thomas,
+University of Utah
+
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:32 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: colorquant.3
+%
+\phead{COLORQUANT}{3}{August\ 14,\ 1989}
+
+\shead{NAME}
+colorquant -- variance-based color quantization
+\shead{SYNOPSIS}
+\begin{TPlist}{\bf}
+\item[{\bf}]
+int colorquant(red, green, blue, npix, colormap, colors, bits, rgbmap, fast, otherimages)
+\end{TPlist}\par\noindent
+\bf
+unsigned char *red, *green, *blue;
+\nwl
+\bf
+unsigned long npix;
+\nwl
+\bf
+unsigned char *colormap[3];
+\nwl
+\bf
+int colors, bits;
+\nwl
+\bf
+unsigned char *rgbmap;
+\nwl
+\bf
+int fast;
+\nwl
+\bf
+int otherimages;
+\shead{DESCRIPTION}
+{\it Colorquant} 
+performs variance-based color quantization on a given image.
+A representative colormap
+and a table for performing RGB to colormap index mapping are computed.  The
+number of colors to which the image was quantized (the total number
+of colormap entries computed) is returned.
+The arguments to
+{\it colorquant} 
+are:
+\begin{TPlist}{{\it red,} green, blue}
+\item[{{\it red,} green, blue}]
+The red, green and blue channels of the image.  The ith pixel is represented
+as the RGB triple (%
+\it red%
+\rm [i], %
+\it green%
+\rm [i], %
+\it blue%
+\rm [i]).  These
+arrays usually contain values that have been 'prequantized' (see below).
+\item[{{\it npix}}]
+The length, in bytes, of the %
+\it red%
+\rm , %
+\it green %
+\rm and %
+\it blue %
+\rm arrays.
+Equal to the total number of pixels in the image.
+\item[{{\it colormap}}]
+Points to a pre-allocated, three-channel colormap.  These arrays will be
+filled with the colormap values computed by the variance-based color
+quantization algorithm.  %
+\it colormap%
+\rm [0][i], %
+\it colormap%
+\rm [1][i], and
+%
+\it colormap%
+\rm [2][i] are, respectively, the red, green and blue components
+of the ith colormap entry.
+\item[{{\it colors}}]
+The number of pre-allocated colormap entries.  The image will be quantized to
+at most this many colors.
+\item[{{\it bits}}]
+The number of significant bits in each entry of the %
+\it red%
+\rm , %
+\it green %
+\rm and
+%
+\it blue %
+\rm arrays.  Normally, the red, green and blue arrays contain
+values that have been prequantized to fewer than eight
+significant bits.
+Five significant bits usually represents a good tradeoff between image quality
+and running time.  Anything above six significant bits will likely lead to
+excessive paging, as the size of %
+\it rgbmap %
+\rm and the internal histogram are
+proportional to (2\^{}%
+\it bits%
+\rm )\^{}3. 
+\item[{{\it rgbmap}}]
+A pointer to an array of unsigned chars of size (2\^{}%
+\it bits%
+\rm )\^{}3.
+This array is used
+to map from pixels to colormap entries.  The prequantized red, green
+and blue components of a pixel are used as an index into this array
+to retrieve the colormap index that should be used to represent the
+pixel.  The array is indexed as:
+\cntr{colorindex = %
+\it rgbmap%
+\rm [(((r $<$$<$ %
+\it bits%
+\rm ) $|$ g) $<$$<$ %
+\it bits%
+\rm ) $|$ b];}
+where r, g, and b are the prequantized red, green and blue components of
+the pixel in question.
+\item[{{\it fast}}]
+If non-zero, the construction of rgbmap will be relatively fast.  If
+zero, %
+\it rgbmap %
+\rm will be built slowly but more accurately.  In most cases,
+the error introduced by the 'fast' approximation is barely noticeable.
+\item[{{\it otherimages}}]
+If non-zero, the rgbmap will be constructed as a complete inverse map.  This
+is necessary when the map is going to be used for images other than the one
+given, or for dithering (which creates colors not in the original image).
+This is much slower than normal map construction, because all inverse
+mappings are calculated.  The normal case just computes inverse mappings for 
+the pixel colors of the image.
+\end{TPlist}\shead{AUTHOR}
+Craig Kolb, Yale University.
+\shead{REFERENCE}
+Wan, Wong, and Prusinkiewicz,
+%
+\it An Algorithm for Multidimensional Data Clustering, %
+\rm Transactions on Mathematical Software, Vol. 14 \#2 (June, 1988), pp. 153-162.
+\shead{SEE ALSO}
+{\it rlequant}{\rm (1).}
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:33 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: dither.3
+%
+% Copyright (c) 1986, 1987, University of Utah
+\phead{DITHER}{3}{2/2/87}
+ 3
+\shead{NAME}
+\begin{TPlist}
+{dithermap, bwdithermap, make\_square, dithergb, 
+ditherbw -- functions for dithering color or black and white images.}
+\item[{dithermap, bwdithermap, make\_square, dithergb, 
+ditherbw --}] functions for dithering color or black and white images.
+\end{TPlist} \shead{SYNOPSIS}
+\raggedright
+\par\vspace{1.0\baselineskip}
+\bf
+dithermap( levels, gamma, rgbmap, divN, modN, magic )
+\nwl
+\bf
+int levels;
+\nwl
+\bf
+double gamma;
+\nwl
+\bf
+int rgbmap[][3], divN[256], modN[256], magic[16][16];
+\par\vspace{1.0\baselineskip}
+\bf
+bwdithermap( levels, gamma, bwmap, divN, modN, magic )
+\nwl
+\bf
+int levels;
+\nwl
+\bf
+double gamma;
+\nwl
+\bf
+int bwmap[], int divN[256], modN[256], magic[16][16];
+\par\vspace{1.0\baselineskip}
+\bf
+make\_square( N, divN, modN, magic )
+\nwl
+\bf
+double N;
+\nwl
+\bf
+int divN[256], modN[256], magic[16][16];
+\par\vspace{1.0\baselineskip}
+\bf
+dithergb( x, y, r, g, b, levels, divN, modN, magic )
+\nwl
+\bf
+int x, y, r, g, b, levels;
+\nwl
+\bf
+int divN[256], modN[256], magic[16][16];
+\par\vspace{1.0\baselineskip}
+\bf
+ditherbw( x, y, val, divN, modN, magic )
+\nwl
+\bf
+int x, y, val, divN[256], modN[256], magic[16][16];
+%.ad b
+\shead{DESCRIPTION}
+These functions provide a common set of routines for dithering a full
+color or gray scale image into a lower resolution color map.  
+
+{\it Dithermap}
+computes a color map and some auxiliary parameters for dithering a
+full color (24 bit) image to fewer bits.  The argument
+{\it levels}
+tells how many different intensity levels per primary color should be
+computed.  To get maximum use of a 256 entry color map, use
+{\it levels}{\rm =6.}
+The computed map uses %
+\it levels\^{}3 \rm%
+entries.
+The
+{\it gamma} 
+argument provides for gamma compensation of the generated color map
+(that is, the values in the map will be adjusted to give a linear
+intensity variation on a display with the given gamma).
+The computed color map will be returned in the array
+{\it rgbmap}{\rm .}
+{\it divN}
+and
+{\it modN}
+are auxiliary arrays for computing the dithering pattern (see below),
+and
+{\it magic}
+is the magic square dither pattern.
+\par
+To compute a color map for dithering a black and white image to fewer
+intensity levels, use
+{\it bwdithermap}{\rm .}
+The arguments are as for
+{\it dithermap}{\rm ,}
+but only a single channel color map is computed.  The value of
+%
+\it levels \rm%
+can be larger than for %
+\it dithermap\rm%
+, as
+the computed map only has %
+\it levels \rm%
+entries.
+\par
+To just build the magic square and other parameters, use
+{\it make\_square}{\rm .}
+The argument
+{\it N}
+should be equal to 255.0 divided by the desired number of intensity
+levels less one (i.e., %
+\it N = 255.0 / (levels - 1)\rm%
+).  The other
+arguments are filled in as above.
+\par
+The color map index for a dithered full color pixel is computed by
+{\it dithergb}{\rm .}
+Since the pattern depends on the screen location, the first two
+arguments
+{\it x}
+and
+{\it y}{\rm ,}
+specify that location.  The true color of the pixel at that location
+is given by the triple
+{\it r}{\rm ,}
+{\it g}{\rm ,}
+and
+{\it b}{\rm .}
+The number of intensity
+{\it levels}
+and the dithering parameter matrices computed by
+{\it dithermap}
+are also passed to 
+{\it dithergb}{\rm .}
+\par
+The color map index for a dithered gray scale pixel is computed by
+{\it ditherbw}{\rm .}
+Again, the screen position is specified, and the intensity value of
+the pixel is supplied in
+{\it val}{\rm .}
+The dithering parameters must also be supplied.
+\par
+Alternatively, the dithering may be done in line instead of incurring
+the extra overhead of a function call, which can be significant when
+repeated a million times.  The computation is as follows:
+\nofill
+%.ta .5i 1.0i 1.5i
+		row = y \% 16;
+		col = x \% 16;
+	\#define DMAP(v,col,row) (divN[v] + (modN[v]$>$magic[col][row] ? 1 : 0))
+		pix = DMAP(r,col,row) + DMAP(g,col,row)*levels +
+			DMAP(b,col,row)*levels*levels;
+\fill
+For a gray scale image, it is a little simpler:
+\nofill
+%.ta .5i 1.0i 1.5i
+		pix = DMAP(val,row,col);
+\fill
+And on a single bit display (assuming a 1 means white):
+\nofill
+%.ta .5i 1.0i
+		pix = divN[val] $>$ magic[col][row] ? 1 : 0
+\fill
+\shead{SEE ALSO}
+{\it rgb\_to\_bw}{\rm (3),}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+\shead{AUTHOR}
+Spencer W. Thomas
+\nwl
+University of Utah
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:35 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: float_to_exp.3
+%
+% Copyright (c) 1986, 1987, University of Utah
+\phead{FLOAT\_TO\_EXP}{3}{November\ 10,\ 1987}
+ 3
+\shead{NAME}
+\begin{TPlist}{float\_to\_exp -- Convert floating point values into "exponential" pixels.}
+\item[{float\_to\_exp --}] Convert floating point values into "exponential" pixels.
+\end{TPlist}\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\par\vspace{1.0\baselineskip}
+\bf
+float\_to\_exp( count, floats, pixels )
+\nwl
+\bf
+int count;
+\nwl
+\bf
+float * floats;
+\nwl
+\bf
+rle\_pixel * pixels;
+\shead{DESCRIPTION}
+The function
+{\it float\_to\_exp}
+converts 
+{\it count}
+floating point numbers (pointed to by 
+{\it floats}{\rm )}
+into 
+{\it count+1} 
+bytes (pointed to by 
+{\it pixels)} 
+using an "exponential" format.
+This format generates 
+{\it count}
+pixels as eight bit "mantissa" values, and another byte containing a
+common exponent for all of the data values.  This format has a wider
+dynamic range of values with little extra overhead.  The inverse
+mapping is
+\nofill
+	float expnt, flt\_val;
+	rle\_pixel exponent, val;
+	expnt = ldexp( 1/256.0, (int)exponent - 127 );
+	flt\_val = (float)val * expnt;
+\fill
+
+Files containing exponential data may be converted into displayable images
+using the
+{\it unexp}{\rm (1)}
+command.  
+{\it Unexp}
+should be used before using any tools that perform arithmetic
+on pixel values, or displaying the image.
+{\it Unexp}
+expects files containing exponential data to have an "exponential\_data"
+picture comment.
+\shead{SEE ALSO}
+{\it unexp}{\rm (1),}
+{\it rle\_putcom}{\rm (3),}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+\shead{AUTHOR}
+John W. Peterson, based on code by Spencer Thomas.
+\nwl
+University of Utah
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:36 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: librle.3
+%
+% Copyright (c) 1986, University of Utah
+\phead{LIBRLE}{3}{3/6/85}
+ 3
+% $Id: librle.3,v 3.0 90/08/03 15:31:24 spencer Exp $ 
+\shead{NAME}
+librle -- Functions to create and read Run Length Encoded image files.
+
+\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\par\vspace{1.0\baselineskip}
+\bf
+cc ... -lrle
+
+\shead{DESCRIPTION}
+The
+{\it RLE}{\rm (5)}
+image file format provides a method for saving and restoring images in
+a device independent form.  A number of subroutines are available to
+facilitate writing and reading 
+{\it RLE}{\rm (5)}
+files.  They are described separately in their own manual pages
+(listed below).
+\shead{SEE ALSO}
+\raggedright
+{\it buildmap}{\rm (3),}
+{\it bwdithermap}{\rm (3),}
+{\it colorquant}{\rm (3),}
+{\it ditherbw}{\rm (3),}
+{\it dithergb}{\rm (3),}
+{\it dithermap}{\rm (3),}
+{\it float\_to\_exp}{\rm (3),}
+{\it make\_square}{\rm (3),}
+{\it rgb\_to\_bw}{\rm (3),}
+{\it rle\_addhist}{\rm (3),}
+{\it rle\_cp}{\rm (3),}
+{\it rle\_debug}{\rm (3),}
+{\it rle\_delcom}{\rm (3),}
+{\it rle\_freeraw}{\rm (3),}
+{\it rle\_get\_error}{\rm (3),}
+{\it rle\_get\_setup}{\rm (3),}
+{\it rle\_get\_setup\_ok}{\rm (3),}
+{\it rle\_getcom}{\rm (3),}
+{\it rle\_getraw}{\rm (3),}
+{\it rle\_getrow}{\rm (3),}
+{\it rle\_getskip}{\rm (3),}
+{\it rle\_open\_f}{\rm (3),}
+{\it rle\_open\_f\_noexit}{\rm (3),}
+{\it rle\_put\_init}{\rm (3),}
+{\it rle\_put\_setup}{\rm (3),}
+{\it rle\_putcom}{\rm (3),}
+{\it rle\_puteof}{\rm (3),}
+{\it rle\_putraw}{\rm (3),}
+%.Ir rle_putrow (3),
+{\it rle\_raw\_alloc}{\rm (3),}
+{\it rle\_raw\_free}{\rm (3),}
+{\it rle\_rawtorow}{\rm (3),}
+{\it rle\_row\_alloc}{\rm (3),}
+{\it rle\_row\_free}{\rm (3),}
+{\it rle\_skiprow}{\rm (3),}
+{\it scanargs}{\rm (3),}
+{\it rle\_hdr}{\rm (3),}
+{\it rle\_op}{\rm (3),}
+{\it RLE}{\rm (5).}
+%.ad b
+\shead{AUTHOR}
+Spencer W. Thomas, Todd Fuqua, and others.
+
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:37 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: rgb_to_bw.3
+%
+% Copyright (c) 1986, 1987, University of Utah
+\phead{RGB\_TO\_BW}{3}{2/2/87}
+ 3
+\shead{NAME}
+rgb\_to\_bw -- convert a color scanline to black and white.
+\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\par\vspace{1.0\baselineskip}
+\bf
+void rgb\_to\_bw( red, green, blue, bw, length );
+\nwl
+\bf
+rle\_pixel * red, * green, * blue, *bw;
+\nwl
+\bf
+int length;
+\shead{DESCRIPTION}
+{\it rgb\_to\_bw}
+converts red/green/blue color information to black and white using the 
+{\it NTSC} Y
+transform:
+\nwl
+\ind{0.5in}
+\it
+Y = 0.30 * R + 0.59 * G + 0.11 * B
+ .
+The arguments point to scanlines with
+{\it length}
+bytes in each.
+{\it bw}
+may be identical to one of
+{\it red}{\rm ,}
+{\it green}{\rm ,}
+or
+{\it blue}{\rm .}
+\shead{SEE ALSO}
+{\it tobw}{\rm (1),}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+\shead{AUTHOR}
+Spencer W. Thomas
+\nwl
+University of Utah
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:37 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: rle_addhist.3
+%
+% Copyright (c) 1988, Curtin University of Technology
+\phead{RLE\_ADDHIST}{3}{9/9/88}
+ 3
+
+\shead{NAME}
+rle\_addhist -- add a history comment to an RLE file.
+
+\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\par\vspace{1.0\baselineskip}
+\bf
+void  rle\_addhist( argv, in\_hdr, out\_hdr )
+\nwl
+\bf
+char **argv;
+\nwl
+\bf
+rle\_hdr *in\_hdr, *out\_hdr;
+
+\shead{DESCRIPTION}
+
+{\it rle\_addhist}
+is used to add history comments to the 
+{\it RLE}{\rm (5)}
+file in the form:
+\nwl
+	HISTORY=cmd arg1 arg2 on Tue Sep 13 01:06:49 WST 1988
+\nwl
+where cmd, arg1, etc. are the command line arguments which have been
+used to generate or filter this %
+\it RLE \rm%
+file. The HISTORY comment is
+always appended to so that an accumulated history is kept along with a
+timestamp.  Programs which generate %
+\it RLE \rm%
+files should call
+{\it rle\_addhist}
+as follows:
+\nwl
+	rle\_addhist(argv,(rle\_hdr *)0,\&out\_hdr);
+\nwl
+Programs which filter %
+\it RLE \rm%
+files should call 
+{\it rle\_addhist}
+as:
+\nwl
+	rle\_addhist(argv,\&in\_hdr,\&out\_hdr);
+\shead{SEE ALSO}
+\raggedright
+{\it rle\_hdr}{\rm (3),}
+{\it rle\_putcom}{\rm (3),}
+{\it rle\_getcom}{\rm (3),}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+%.ad b
+\shead{AUTHOR}
+Andrew Marriott,
+\nwl
+Curtin University of Technology (Australia)
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:38 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: rle_cp.3
+%
+% Copyright (c) 1986, University of Utah
+\phead{RLE\_CP}{3}{2/2/87}
+ 3
+
+\shead{NAME}
+rle\_cp -- Copy the rest of an image to the output.
+
+\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\par\vspace{1.0\baselineskip}
+\bf
+rle\_cp( in\_hdr, out\_hdr )
+\nwl
+\bf
+rle\_hdr *in\_hdr, *out\_hdr;
+
+\shead{DESCRIPTION}
+
+This routine copies the image contents of one
+{\it RLE}{\rm (5)}
+file to another.
+The image described by 
+{\it in\_hdr}
+will be copied to the image file described by
+{\it out\_hdr}{\rm .}
+If any rows have been read with
+{\it rle\_getrow}{\rm (3)}
+or
+{\it rle\_getraw}{\rm (3),}
+those rows must have also been written with
+{\it rle\_putrow}{\rm (3)\ or\ }{\it rle\_putraw}{\rm (3),}
+respectively,
+in order for the input and output files to be "in sync".
+In any case, the header should have been written to the output file with
+{\it rle\_put\_setup}{\rm (3).}
+When 
+{\it rle\_cp}
+returns, the input image file will be positioned at the end of the
+image, and an end of image code will have been written to the output
+image file.
+\shead{SEE ALSO}
+\raggedright
+{\it rle\_hdr}{\rm (3),}
+{\it rle\_getrow}{\rm (3),}
+{\it rle\_getraw}{\rm (3),}
+{\it rle\_putrow}{\rm (3),}
+{\it rle\_putraw}{\rm (3),}
+{\it rle\_put\_setup}{\rm (3),}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+%.ad b
+\shead{AUTHOR}
+Spencer W. Thomas
+\nwl
+University of Michigan
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:40 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: rle_get_set.3
+%
+% Copyright (c) 1986, 1987, University of Utah
+\phead{RLE\_GET\_SETUP}{3}{2/2/87}
+ 3
+\shead{NAME}
+rle\_get\_setup -- Read the header from an RLE file.
+%.PD 0
+\begin{TPlist}{rle\_get\_setup\_ok -- Print error message and exit if rle\_get\_setup fails.}
+\item[{rle\_get\_setup\_ok -- Print error message and exit if rle\_get\_setup fails.}]
+\item[{rle\_get\_error -- Print error message for rle\_get\_setup failure.}]
+\end{TPlist}\par\noindent
+rle\_debug -- Turn on or off debugging messages.
+%.PD
+\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\par\vspace{1.0\baselineskip}
+\bf
+rle\_get\_setup( the\_hdr );
+\nwl
+\bf
+rle\_hdr * the\_hdr;
+\par\vspace{1.0\baselineskip}
+\bf
+rle\_get\_setup\_ok( the\_hdr, prog\_name, file\_name );
+\nwl
+\bf
+rle\_hdr * the\_hdr;
+\nwl
+\bf
+char * prog\_name, * file\_name;
+\par\vspace{1.0\baselineskip}
+\bf
+rle\_get\_error( code, prog\_name, file\_name )
+\nwl
+\bf
+int code;
+\nwl
+\bf
+char *prog\_name, *file\_name;
+\par\vspace{1.0\baselineskip}
+\bf
+rle\_debug( on\_off )
+\nwl
+{\bf int} on\_off;
+\shead{DESCRIPTION}
+\par
+{\it Rle\_get\_setup}
+is called to initialize the process of reading an 
+{\it RLE}{\rm (5)}
+file.
+It will fill in
+{\it the\_hdr}
+with the header information from the %
+\it RLE \rm%
+file, and will initialize
+state for
+{\it rle\_getrow}{\rm (3)}
+and
+{\it rle\_getraw}{\rm (3).}
+The
+{\it rle\_file}
+field of
+{\it the\_hdr}
+should be initialized to the input stream before calling
+{\it rle\_get\_setup}{\rm .}
+The
+{\it bits}
+field is initialized by
+{\it rle\_get\_setup}
+to enable reading of all the channels present in the input file.  To
+prevent %
+\it rle\_getrow \rm%
+or %
+\it rle\_getraw \rm%
+from reading certain
+channels (e.g., the alpha channel), the appropriate bits should be
+cleared before calling them.  The error codes returned by
+%
+\it rle\_get\_setup \rm%
+are defined in %
+\it rle.h\rm%
+.
+
+{\it Rle\_get\_setup\_ok}
+invokes
+{\it rle\_get\_setup}
+and checks the return code.  If an error occurred, it calls
+\it
+rle\_get\_error( err\_code, prog\_name, file\_name )
+to print the appropriate error message
+on
+{\it stderr}{\rm ,}
+and the program exits with the status code set.
+
+{\it Rle\_get\_error}
+can be called to print an appropriate error message on the standard
+error output for the failure code returned by
+{\it rle\_get\_setup}{\rm .}
+The 
+{\it prog\_name}
+and
+{\it file\_name}
+parameters are used for the error message.  If
+{\it file\_name}
+is NULL or "--", the string "Standard input" is substituted.
+
+The function
+{\it rle\_debug}
+is used to enable or disable debug printing for the 
+{\it rle\_get}
+functions.  If 
+{\it on\_off}
+is non-zero, all input read from any
+{\it RLE}
+file will be printed in a readable form on the standard error output.
+Calling
+{\it rle\_debug(0)}
+will turn off this activity.
+\shead{SEE ALSO}
+{\it rle\_hdr}{\rm (3),}
+{\it rle\_getrow}{\rm (3),}
+{\it rle\_getraw}{\rm (3),}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+\shead{AUTHOR}
+Spencer W. Thomas, Todd Fuqua
+\nwl
+University of Utah
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:42 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: rle_getraw.3
+%
+% Copyright (c) 1986, 1987, University of Utah
+\phead{RLE\_GETRAW}{3}{2/2/87}
+ 3
+
+\shead{NAME}
+rle\_getraw -- Read run length encoded data from an RLE file.
+\nwl
+rle\_freeraw -- Free pixel storage allocated by rle\_getraw.
+\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\nwl
+\bf
+\#include $<$rle\_raw.h$>$
+\par\vspace{1.0\baselineskip}
+\bf
+unsigned int rle\_getraw( the\_hdr, scanraw, nraw )
+\nwl
+\bf
+rle\_hdr * the\_hdr;
+\nwl
+\bf
+rle\_op ** scanraw;
+\nwl
+\bf
+int * nraw;
+\par\vspace{1.0\baselineskip}
+\bf
+void rle\_freeraw( the\_hdr, scanraw, nraw );
+\nwl
+\bf
+rle\_hdr * the\_hdr;
+\nwl
+\bf
+rle\_op ** scanraw;
+\nwl
+\bf
+int * nraw;
+\shead{DESCRIPTION}
+{\it Rle\_getraw}
+can be used to read information from an RLE file in the "raw" form.
+
+The
+{\it scanraw}
+argument is an array of pointers to arrays of 
+{\it rle\_op}{\rm (3)}
+structures.  Each
+{\it rle\_op}
+structure specifies a run or sequence of pixel values.  The array
+{\it nraw}
+gives the number of 
+{\it rle\_op}
+structures for each channel.  I.e.,
+{\it nraw[i]}
+is the length of the array pointed to by
+{\it scanraw[i]}{\rm .}
+\par
+Return value is the current scanline number.  Returns 32768 at EOF.
+\par
+Sufficient space must be allocated in the arrays of 
+{\it rle\_op}
+structures to hold the data read from the file.  A function,
+{\it rle\_raw\_alloc}{\rm (3),}
+is provided to make this easier.  The storage required by any pixel
+sequences in the input will be dynamically allocated by
+{\it rle\_getraw}{\rm .}
+
+The pixel storage allocated dynamically by
+{\it rle\_getraw}{\rm (3)}
+must be freed to avoid memory leaks.  This is most easily accomplished
+by calling 
+{\it rle\_freeraw}{\rm .}
+The argument
+{\it scanraw}
+points to an array of 
+{\it rle\_op}
+structures, with
+{\it nraw}
+indicating the number of structures in each channel.  All pixel data
+arrays will be freed by the call to
+{\it rle\_freeraw}{\rm .}
+\shead{EXAMPLE}
+The usual code looks something like
+\nofill
+	rle\_hdr in\_hdr, out\_hdr;
+	rle\_op **raw;
+	int *nraw;
+	while ( rle\_getraw( \&in\_hdr, raw, nraw ) != 32768 )
+	\{
+		/* Process data. */
+		rle\_putraw( \&out\_hdr, raw, nraw );
+		rle\_freeraw( \&in\_hdr, raw, nraw );
+	\}
+\fill
+\shead{SEE ALSO}
+\raggedright
+{\it rle\_hdr}{\rm (3),}
+{\it rle\_op}{\rm (3),}
+{\it rle\_putraw}{\rm (3),}
+{\it rle\_raw\_alloc}{\rm (3),}
+{\it rle\_raw\_free}{\rm (3),}
+{\it rle\_getrow}{\rm (3),}
+{\it rle\_getskip}{\rm (3),}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+%.ad b
+\shead{AUTHOR}
+Spencer W. Thomas
+\nwl
+University of Utah
+
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:43 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: rle_getrow.3
+%
+% Copyright (c) 1986, 1987, University of Utah
+\phead{RLE\_GETROW}{3}{2/2/87}
+ 3
+\shead{NAME}
+rle\_getrow -- Read a scanline of pixels from an RLE file.
+\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\par\vspace{1.0\baselineskip}
+\bf
+rle\_getrow( the\_hdr, rows );
+\nwl
+\bf
+rle\_hdr * the\_hdr;
+\nwl
+\bf
+rle\_pixel ** rows;
+\shead{DESCRIPTION}
+{\it Rle\_getrow}
+reads information for a single scanline from the input file
+each time it is called.  
+{\it The\_hdr}
+should point to the structure initialized by
+{\it rle\_get\_setup}{\rm (3).}
+The array
+{\it rows}
+should contain pointers to arrays of characters, into which the scanline
+data will be written.  There should be as many elements in
+{\it rows}
+as there are primary colors in the input file (typically 1 or 3), and the
+scanline arrays must be indexable up to the maximum X coordinate, as
+specified by
+{\it the\_hdr}{\rm }{\it xmax}{\rm .}
+{\it rle\_getrow}
+returns the y value of the scanline just read.  This will always be 1
+greater than the y value from the scanline previously read, and starts at
+{\it the\_hdr}{\rm }{\it ymin}{\rm .}
+Only those channels enabled by
+{\it the\_hdr}{\rm }{\it bits}
+will be returned.
+\shead{NOTES}
+If an alpha channel is present in the input and enabled (by 
+{\it RLE\_SET\_BIT}{\rm ,}
+see
+{\it rle\_hdr}{\rm (3)),}
+then %
+\it rows \rm%
+should include a --1 entry.  (I.e., %
+\it rows[--1] \rm%
+should point to a valid scanline array.)  The easiest way to ensure
+this is to use
+{\it rle\_row\_alloc}{\rm (3)}
+to allocate %
+\it rows\rm%
+.
+
+{\it Rle\_getrow}
+will continue to return scanlines even after the end of the input file has
+been reached, incrementing the return scanline number each time it is
+called.  The calling program should use some other termination criterion
+(such as the scanline number reaching
+{\it the\_hdr}{\rm }{\it ymax}{\rm ,}
+or explicitly testing testing for end of file on the input with
+{\it feof(infile)}{\rm .}
+The second test may fail if 
+{\it rle\_getrow}
+has encountered a logical EOF in the file.  The first will always work
+eventually.)
+\shead{EXAMPLE}
+The code below reads the first two
+3 color scanlines of 512 pixels from an RLE file on the standard input.
+\par
+\nofill
+%.ta 1i 1.5i 2i
+	char scanline[2][3][512], *rows[3];
+	int row, i;
+	rle\_dflt\_hdr.rle\_file = stdin;
+	rle\_get\_setup( \&rle\_dflt\_hdr );
+	for ( row = 0; row $<$ 2; row++ ) 
+	\{
+		for ( i = 0; i $<$ 3; i++ )
+			rows[i] = scanline[row][i];
+		rle\_getrow( \&rle\_dflt\_hdr, rows );
+	\}
+\fill
+\shead{SEE ALSO}
+\raggedright
+{\it rle\_hdr}{\rm (3),}
+{\it rle\_row\_alloc}{\rm (3),}
+{\it rle\_row\_free}{\rm (3),}
+{\it rle\_get\_setup}{\rm (3),}
+{\it rle\_getraw}{\rm (3),}
+{\it rle\_getskip}{\rm (3),}
+{\it rle\_putrow}{\rm (3),}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+%.ad b
+\shead{AUTHOR}
+Spencer W. Thomas, Todd Fuqua
+\nwl
+University of Utah
+
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:44 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: rle_getskip.3
+%
+% Copyright (c) 1986, University of Utah
+\phead{RLE\_GETSKIP}{3}{2/2/87}
+ 3
+\shead{NAME}
+rle\_getskip -- Skip the rest of an input image.
+\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\par\vspace{1.0\baselineskip}
+\bf
+unsigned int rle\_getskip( in\_hdr )
+\nwl
+\bf
+rle\_hdr *in\_hdr;
+\shead{DESCRIPTION}
+This routine skips the unread part of an
+{\it RLE}{\rm (5)}
+image.  
+Each time
+{\it rle\_getskip}
+is called, a scanline in the image described by 
+{\it in\_hdr}
+will be skipped.  
+{\it rle\_getskip}
+returns the scanline number of the next scanline that would be read by
+{\it rle\_getrow}{\rm (3)}
+or
+{\it rle\_getraw}{\rm (3).}
+When the end of the image is reached,
+{\it rle\_getskip}
+returns 32768.
+\shead{SEE ALSO}
+{\it rle\_hdr}{\rm (3),}
+{\it rle\_getrow}{\rm (3),}
+{\it rle\_getraw}{\rm (3),}
+{\it RLE}{\rm (5).}
+\shead{AUTHOR}
+Spencer W. Thomas
+\nwl
+University of Utah
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:44 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: rle_hdr.3
+%
+% Copyright (c) 1986, University of Utah
+\phead{RLE\_HDR}{3}{2/2/87}
+ 3
+\shead{NAME}
+rle\_hdr -- Structure for communication with RLE functions.
+
+\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\par\vspace{1.0\baselineskip}
+\bf
+rle\_hdr rle\_dflt\_hdr;
+\par\vspace{1.0\baselineskip}
+\bf
+RLE\_SET\_BIT(the\_hdr,bit)
+\nwl
+\bf
+RLE\_CLR\_BIT(the\_hdr,bit)
+\nwl
+\bf
+RLE\_BIT(the\_hdr,bit)
+\nwl
+\bf
+rle\_hdr the\_hdr;
+\shead{DESCRIPTION}
+This data structure provides communication to and between all the 
+{\it RLE}{\rm (5)}
+file routines.  It describes the parameters of the image being saved
+or read, and contains some variables describing file state that are
+private to the routines.  The public components are described below.
+
+\nofill
+%.ta 1i 1.8i 2.8i
+     typedef unsigned char rle\_pixel;
+     typedef unsigned short rle\_map;
+
+     rle\_hdr \{
+	int	ncolors,	/* Number of colors being saved */
+		*bg\_color,	/* Background color array */
+		alpha,	/* if  0, save alpha channel (color -1) */
+			/* alpha channel background is always 0 */
+		background,	/* if = 0, no background processing */
+			/* if = 1 or 2, save only non-bg pixels */
+			/* If 2, set clear-to-bg flag in file */
+		xmin,	/* Min X bound of saved raster */
+		xmax,	/* Max X bound */
+		ymin,	/* Min Y bound */
+		ymax,	/* Max Y bound */
+		ncmap,	/* number of color channels in color map */
+			/* if = 0, color map is not saved */
+		cmaplen;	/* Log2 of the number of entries in */
+			/* each channel of the color map */
+	rle\_map	*cmap;	/* pointer to color map, stored as 16-bit */
+			/* words, with values left justified */
+	char	**comments;	/* Pointer to array of pointers */
+			/* to comment strings. */
+	FILE *	rle\_file;	/* I/O to this file */
+	/* 
+	 * Bit map of channels to read/save.  Indexed by (channel mod 256).
+	 */
+	char    bits[256/8];
+    \};
+\fill
+
+A global variable,
+{\it rle\_dflt\_hdr}{\rm ,}
+is available, conveniently initialized with default values.
+\shead{FIELDS}
+\begin{TPlist}{{\it ncolors}}
+\item[{{\it ncolors}}]
+The number of colors (exclusive of the alpha channel) in the image.
+This is one greater than the largest channel index (i.e.,
+%
+\it ncolors \rm%
+would be 3 if channels 0, 1, and 2 were saved, or if
+only channel 2 were saved.)
+\item[{{\it bg\_color}}]
+A pointer to an array of %
+\it ncolors \rm%
+integers, defines the
+background color (if used).  The background alpha value is always 0,
+so is not included in the %
+\it bg\_color \rm%
+array.
+\item[{{\it alpha}}]
+If non-zero, an alpha channel is present as channel --1.  This
+should always be 0 or 1.  %
+\it Rle\_get\_setup \rm%
+and %
+\it rle\_put\_setup \rm%
+enforce this constraint.  The alpha channel will only be actually read
+or written if the corresponding bit in %
+\it bits \rm%
+is also set.
+\item[{{\it background}}]
+Controls whether background color processing is done.  If 0, no
+background processing is done at all (and %
+\it bg\_color \rm%
+is ignored).
+If 1 or 2, then runs of 3 or more pixels in the background color are
+not saved at all.  If 2, then these runs will be restored by
+%
+\it rle\_getrow\rm%
+; if 1, they will not (this can lead to some strange
+images).
+\item[{{\it xmin,} xmax, ymin, ymax}]
+The bounds of the image.  All pixels from %
+\it xmin \rm%
+to %
+\it xmax\rm%
+,
+inclusive, in rows numbered from %
+\it ymin \rm%
+to %
+\it ymax\rm%
+, inclusive,
+will be saved.  Thus the dimensions of the image are
+\nwl
+\it
+	(xmax - xmin + 1)  (ymax - ymin + 1)
+\item[{{\it ncmap,} cmaplen}]
+The size of the saved colormap (if any).  The color map will have
+%
+\it ncmap \rm%
+channels, each %
+\it 2\^{}cmaplen \rm%
+long.  If %
+\it ncmap \rm%
+is
+zero, no color map is present.
+\item[{{\it cmap}}]
+A pointer to colormap data, if present.  The data is stored in
+"channel major" order, so that all the values for channel 0 precede
+all the values for channel 1, etc.  Each individual value is
+left-justified in 16 bits (i.e., the range of values is 0--65535).
+\item[{{\it comments}}]
+A pointer to picture comment data, if present.  Use the functions
+{\it rle\_putcom}{\rm (3),}
+{\it rle\_getcom}{\rm (3),}
+and
+{\it rle\_delcom}{\rm (3)}
+to manipulate this field.
+\item[{{\it rle\_file}}]
+The standard I/O %
+\it FILE \rm%
+pointer for the file containing this
+image.
+\item[{{\it bits}}]
+A bitmap that selects the channels that are actually written to/read
+from the file.  The macros below are used to modify this bitmap.
+\end{TPlist}\shead{MACROS}
+The macro
+{\it RLE\_BIT}
+will retrieve the state of one of the bits in the
+{\it bits}
+map.
+{\it RLE\_SET\_BIT}{\rm ,}
+and
+{\it RLE\_CLR\_BIT}
+set and clear bits in the 
+{\it bits}
+map.  The predefined symbols
+{\it RLE\_RED}{\rm ,}
+{\it RLE\_GREEN}{\rm ,}
+{\it RLE\_BLUE}{\rm ,}
+and
+{\it RLE\_ALPHA}{\rm ,}
+or an integer value from --1 to 254
+may be used in these macros.
+\shead{SEE ALSO}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+\shead{AUTHOR}
+Spencer W. Thomas, Todd Fuqua
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:45 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: rle_op.3
+%
+% Copyright (c) 1990, University of Michigan
+\phead{RLE\_OP}{3}{July,\ 1990}
+ 3
+\shead{NAME}
+rle\_op -- Data structure for raw run-length encoded image data.
+\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\nwl
+\bf
+\#include $<$rle\_raw.h$>$
+\nwl
+\bf
+typedef struct rle\_op rle\_op;
+\shead{DESCRIPTION}
+The
+{\it rle\_op}
+data structure is used to describe a single run of data in a
+{\it RLE}{\rm (5)}
+run-length encoded image.  It is filled by the function
+{\it rle\_getraw}{\rm (3),}
+and is used by the functions
+{\it rle\_putraw}{\rm (3)}
+and
+{\it rle\_rawtorow}{\rm (3).}
+
+The structure is
+\nofill
+%.ta 1i 1.8i 2.8i 3.8i
+    struct rle\_op \{
+	int	opcode;	/* One of RByteDataOp or RRunDataOp. */
+	int	xloc;	/* X starting location of this data. */
+	int	length;	/* Length of run or data array. */
+	union \{
+		rle\_pixel	*pixels;	/* ByteData case. */
+		int	run\_val;	/* RunData case. */
+	\} u;
+     \};
+\fill
+
+If the 
+{\it opcode}
+has the value
+{\it RByteDataOp}{\rm ,}
+then the
+{\it u.pixels}
+component points to an array of 
+{\it length}
+pixel values.  If the %
+\it opcode \rm%
+has the value %
+\it RRunDataOp\rm%
+,
+then the %
+\it u.run\_val \rm%
+component contains a pixel value that is to
+be repeated %
+\it length \rm%
+times.
+\shead{SEE ALSO}
+\raggedright
+{\it rle\_hdr}{\rm (3),}
+{\it rle\_getraw}{\rm (3),}
+{\it rle\_putraw}{\rm (3),}
+{\it rle\_rawtorow}{\rm (3),}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+%.ad b
+\shead{AUTHOR}
+Spencer W. Thomas
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:46 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: rle_open_f.3
+%
+% Copyright (c) 1986, 1987, University of Utah
+\phead{RLE\_OPEN\_F}{3}{2/2/87}
+ 3
+
+\shead{NAME}
+rle\_open\_f -- Open a binary file for input or output with defaults.
+\nwl
+rle\_open\_f\_noexit -- Returns error code instead of exiting.
+\shead{SYNOPSIS}
+\bf
+FILE *rle\_open\_f( prog\_name, file\_name, mode )
+\nwl
+\bf
+char *prog\_name, *file\_name, *mode;
+\par\vspace{1.0\baselineskip}
+\bf
+FILE *rle\_open\_f\_noexit( prog\_name, file\_name, mode )
+\nwl
+\bf
+char *prog\_name, *file\_name, *mode;
+\shead{DESCRIPTION}
+The function
+{\it rle\_open\_f}
+is provided to simplify the task of opening files in toolkit programs.
+It works similarly to 
+{\it fopen}{\rm (3),}
+but it also provides error checking and messages, and default values
+for input and output.  If the specified 
+{\it file\_name}
+cannot be opened, an error message is printed and the program exits.
+A variant
+{\it rle\_open\_f\_noexit}
+is provided which will return NULL if the file cannot be opened.  An
+error message is still printed.
+
+On those systems which require it, a 'b' will be appended to the mode
+string so that the file will be opened in binary mode.
+
+If the 
+{\it file\_name}
+is NULL or "--", then 
+{\it stdin}
+will be returned for input (%
+\it mode %
+\rm "r") files and
+{\it stdout}
+will be returned for output (%
+\it mode %
+\rm "w" or "a") files.  
+
+\it
+The following two options are available only on systems supporting pipes.
+If the 
+{\it file\_name}
+starts with a "$|$" character, then the rest of the file name will be
+taken as a 
+{\it sh}{\rm (1)}
+command.  If 
+{\it mode}
+is "r", a pipe from the output of the
+{\it sh}
+command will be returned.  If
+{\it mode}
+is "w" or "a", a pipe to the input of the
+{\it sh}
+command will be returned.
+
+If the
+{\it file\_name}
+ends with the suffix ".Z" (and does not start with "$|$"), then the 
+{\it compress}{\rm (1)}
+program will be invoked to uncompress (%
+\it mode %
+\rm "r") or compress
+(%
+\it mode %
+\rm "w" or "a") the file.  The file descriptor returned by
+{\it rle\_open\_f}
+will be a pipe from or to the compress program.
+\shead{SEE ALSO}
+{\it fopen}{\rm (3),}
+{\it popen}{\rm (3),}
+{\it compress}{\rm (1).}
+\shead{AUTHOR}
+Gerald Winter
+\nwl
+Spencer W. Thomas
+\nwl
+University of Michigan
+\shead{BUGS}
+If the command invoked via %
+\it popen %
+\rm does not exist, the %
+\it popen %
+\rm still returns successfully, and the underlying %
+\it sh %
+\rm prints an
+error message.
+ 
+There is no way of telling that a particular %
+\it FILE \rm%
+pointer has
+been created by %
+\it popen\rm%
+, so it isn't possible to cleanly close the
+pipe with %
+\it pclose\rm%
+.  In fact, the eventual output file may not
+even exist by the time the program exits.
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:47 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: rle_put_init.3
+%
+% Copyright (c) 1986, University of Utah
+\phead{RLE\_PUT\_SETUP}{3}{2/2/87}
+ 3
+\shead{NAME}
+rle\_put\_setup -- setup to create an RLE file.
+\nwl
+rle\_put\_init -- setup for writing to an RLE file.
+\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\par\vspace{1.0\baselineskip}
+\bf
+void rle\_put\_setup( the\_hdr );
+\nwl
+\bf
+rle\_hdr * the\_hdr;
+\par\vspace{1.0\baselineskip}
+\bf
+void rle\_put\_init( the\_hdr );
+\nwl
+\bf
+rle\_hdr * the\_hdr;
+\shead{DESCRIPTION}
+
+{\it Rle\_put\_setup}
+is called to initialize the output and write the image header of
+an
+{\it RLE}{\rm (5)}
+image.
+The argument is a pointer to a 
+{\it rle\_hdr}{\rm (3)}
+structure, which has been filled in with appropriate values for the
+image being saved.
+
+{\it Rle\_put\_init}
+is called to initialize the header data structure for writing output to an
+{\it RLE}
+file.
+The argument is a pointer to a 
+{\it rle\_hdr}{\rm (3)}
+structure, which has been filled in with appropriate values for the
+image being saved.  The "private" elements of the header will be
+initialized.  The header is not written to the file.
+This function could be useful for appending image data
+to an existing file.  The new data should have the same number
+channels, the same width, etc. as the existing image.
+\shead{SEE ALSO}
+{\it rle\_hdr}{\rm (3),}
+{\it rle\_putrow}{\rm (3),}
+{\it rle\_putraw}{\rm (3),}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+\shead{AUTHOR}
+Spencer W. Thomas, Todd Fuqua
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:48 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: rle_putcom.3
+%
+% Copyright (c) 1986, 1987, University of Utah
+\phead{RLE\_PUTCOM}{3}{2/2/87}
+ 3
+\shead{NAME}
+\begin{TPlist}{rle\_putcom -- set the value of a picture comment in an RLE file.}
+\item[{rle\_putcom --}] set the value of a picture comment in an RLE file.
+%.PD 0
+\end{TPlist}\par\noindent
+rle\_getcom -- get a picture comment from an RLE file.
+\nwl
+rle\_delcom -- delete a picture comment from an RLE file.
+%.PD
+\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\par\vspace{1.0\baselineskip}
+\bf
+char * rle\_putcom( value, the\_hdr )
+\nwl
+\bf
+char * value;
+\nwl
+\bf
+rle\_hdr * the\_hdr;
+\par\vspace{1.0\baselineskip}
+\bf
+char * rle\_getcom( name, the\_hdr )
+\nwl
+\bf
+char * name;
+\nwl
+\bf
+rle\_hdr * the\_hdr;
+\par\vspace{1.0\baselineskip}
+\bf
+char * rle\_delcom( name, the\_hdr )
+\nwl
+\bf
+char * name;
+\nwl
+\bf
+rle\_hdr * the\_hdr;
+\shead{DESCRIPTION}
+{\it Rle\_putcom}
+can be used to add a picture comment or change the value of a picture
+comment in a
+{\it rle\_hdr}{\rm (3)}
+structure.  The argument
+{\it value}
+is the string value of the comment, and is generally of the form
+{\it name=value}{\rm .}
+It may also be of the form
+{\it name}{\rm .}
+If there is another comment with the same
+{\it name}{\rm ,}
+it will be replaced with the new 
+{\it value}{\rm ,}
+and the previous comment will be returned as the value of
+{\it rle\_putcom}{\rm .}
+
+{\it Rle\_getcom}
+returns a pointer to the data portion of a picture comment from an RLE file.
+The comment is assumed to be in the form
+{\it name=value}{\rm ;}
+a pointer to 
+{\it value}
+is returned.  If the comment is of the form
+{\it name}{\rm ,}
+a pointer to the null character at the end of the string is returned.
+If there is no comment of the above forms, a
+{\it NULL}
+pointer is returned.
+The
+{\it the\_hdr}
+structure contains the picture comments in question.
+
+{\it Rle\_delcom}
+is used to delete a picture comment from a
+{\it rle\_hdr}{\rm (3)}
+structure.  It is called with the
+{\it name}
+of the comment and the
+{\it the\_hdr}
+structure to be modified.  The first comment in the 
+{\it rle\_hdr}
+structure of the form
+{\it name=value}
+or
+{\it name}
+will be deleted.  The deleted comment will be returned as the function
+value.
+\shead{SEE ALSO}
+{\it rle\_addhist}{\rm (3),}
+{\it rle\_hdr}{\rm (3),}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+\shead{AUTHOR}
+Spencer W. Thomas
+\nwl
+University of Utah
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:49 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: rle_puteof.3
+%
+% Copyright (c) 1986, 1987, University of Utah
+\phead{RLE\_PUTEOF}{3}{2/2/87}
+ 3
+\shead{NAME}
+rle\_puteof -- write an end of image to an RLE file.
+\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\par\vspace{1.0\baselineskip}
+\bf
+rle\_puteof( the\_hdr );
+\nwl
+\bf
+rle\_hdr * the\_hdr;
+\shead{DESCRIPTION}
+Call
+{\it rle\_puteof}
+to write an end of image opcode into an
+{\it RLE}{\rm (5)}
+file.  
+{\it Rle\_puteof}
+also frees some storage allocated by
+{\it rle\_putrow}{\rm (3),}
+"flushes" the output file, and generally cleans up.
+\shead{SEE ALSO}
+\raggedright
+{\it rle\_hdr}{\rm (3),}
+{\it rle\_put\_setup}{\rm (3),}
+{\it rle\_putrow}{\rm (3),}
+{\it rle\_putraw}{\rm (3),}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+%.ad b
+\shead{AUTHOR}
+Spencer W. Thomas
+\nwl
+University of Utah
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:49 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: rle_putraw.3
+%
+% Copyright (c) 1986, 1987, University of Utah
+\phead{RLE\_PUTRAW}{3}{2/2/87}
+ 3
+\shead{NAME}
+rle\_putraw -- write run length encoded data to an RLE file.
+\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\nwl
+\bf
+\#include $<$rle\_raw.h$>$
+\par\vspace{1.0\baselineskip}
+\bf
+rle\_putraw( scanraw, nraw, the\_hdr );
+\nwl
+\bf
+rle\_op ** scanraw;
+\nwl
+\bf
+int * nraw;
+\nwl
+\bf
+rle\_hdr * the\_hdr;
+\shead{DESCRIPTION}
+The function
+{\it rle\_putraw}
+provides a structured method for creating 
+run length encoded output.  It is passed an array,
+{\it scanraw}{\rm ,}
+of pointers to arrays of 
+{\it rle\_op}{\rm (3)}
+structures, and an array of lengths.  Each
+{\it rle\_op}
+structure specifies a run or sequence of pixel values.  The array
+{\it nraw}
+gives the number of 
+{\it rle\_op}
+structures for each channel.  I.e.,
+{\it nraw[i]}
+is the length of the array pointed to by
+{\it scanraw[i]}{\rm .}
+\shead{SEE ALSO}
+\raggedright
+{\it rle\_hdr}{\rm (3),}
+{\it rle\_op}{\rm (3),}
+{\it rle\_put\_setup}{\rm (3),}
+{\it rle\_puteof}{\rm (3),}
+{\it rle\_skiprow}{\rm (3),}
+{\it rle\_raw\_alloc}{\rm (3),}
+{\it rle\_raw\_free}{\rm (3),}
+{\it rle\_getraw}{\rm (3),}
+{\it rle\_freeraw}{\rm (3),}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+%.ad b
+\shead{AUTHOR}
+Spencer W. Thomas
+\nwl
+University of Utah
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:50 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: rle_putrow.3
+%
+% Copyright (c) 1986, University of Utah
+\phead{RLE\_PUTROW}{3}{2/2/87}
+ 3
+\shead{NAME}
+rle\_putrow -- Write a row (scanline) of data to an RLE file.
+\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\par\vspace{1.0\baselineskip}
+\bf
+void rle\_putrow( rows, length, the\_hdr );
+\nwl
+\bf
+rle\_pixel ** rows;
+\nwl
+\bf
+int length;
+\nwl
+\bf
+rle\_hdr * the\_hdr;
+\shead{DESCRIPTION}
+{\it Rle\_putrow}
+is called for each output scanline when creating an
+{\it RLE}{\rm (5)}
+image.  
+{\it Rows}
+is an array of pointers to the pixel data for the color components of
+the scanline.  Rows should have 
+{\it the\_hdr}{\rm }{\it ncolors}
+elements.  If an alpha channel is being saved, rows[-1] should point to the
+alpha channel data.
+{\it Length}
+is the number of pixels in the scanline.  
+{\it Rows[i]}
+should point to the 
+{\it the\_hdr}{\rm }{\it xmin}
+element of the scanline.
+
+The function
+{\it rle\_row\_alloc}{\rm (3)}
+will properly allocate memory for use by 
+{\it rle\_putrow}{\rm .}
+\shead{SEE ALSO}
+\raggedright
+{\it rle\_hdr}{\rm (3),}
+{\it rle\_skiprow}{\rm (3),}
+{\it rle\_putraw}{\rm (3),}
+{\it rle\_puteof}{\rm (3),}
+{\it rle\_row\_alloc}{\rm (3),}
+{\it rle\_row\_free}{\rm (3),}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+%.ad b
+\shead{AUTHOR}
+Spencer W. Thomas, Todd Fuqua
+\shead{BUGS}
+Having the scanline indexed from 
+{\it xmin}
+is an incredible botch.  Its origin lies in the deep dark history of
+the raster toolkit, and it seems it's too late to change it now.
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:51 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: rle_raw_free.3
+%
+% Copyright (c) 1986, 1987, University of Utah
+\phead{RLE\_RAW\_ALLOC}{3}{2/2/87}
+ 3
+\shead{NAME}
+\begin{TPlist}{rle\_raw\_alloc -- Allocate memory for rle\_getraw or rle\_putraw.}
+\item[{rle\_raw\_alloc --}] Allocate memory for rle\_getraw or rle\_putraw.
+%.PD 0
+\end{TPlist}\par\noindent
+rle\_raw\_free -- free memory allocated by rle\_raw\_alloc.
+%.PD
+\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\nwl
+\bf
+\#include $<$rle\_raw.h$>$
+\par\vspace{1.0\baselineskip}
+\bf
+rle\_raw\_alloc( the\_hdr, scanp, nrawp )
+\nwl
+\bf
+rle\_hdr * the\_hdr;
+\nwl
+\bf
+rle\_op *** scanp;
+\nwl
+\bf
+int ** nrawp;
+\par\vspace{1.0\baselineskip}
+\bf
+rle\_raw\_free( the\_hdr, scanp, nrawp )
+\nwl
+\bf
+rle\_hdr * the\_hdr;
+\nwl
+\bf
+rle\_op ** scanp;
+\nwl
+\bf
+int * nrawp;
+
+\shead{DESCRIPTION}
+The function
+{\it rle\_raw\_alloc}
+is provided to make it easier to allocate storage for use by the RLE
+"raw" functions.  It examines the
+{\it the\_hdr}
+structure provided and return (via its other arguments) newly
+allocated space suitable for reading from or writing to an RLE file
+described by the
+{\it the\_hdr}
+structure.
+{\it Rle\_raw\_alloc}
+allocates
+{\rm (}{\it the\_hdr}{\rm }{\it xmax}
+--
+{\it the\_hdr}{\rm }{\it xmin}
++ 1)
+elements per channel, which is more than should ever be needed for a
+valid %
+\it RLE \rm%
+file.
+
+{\it Rle\_raw\_free}
+should be used to free memory allocated by 
+{\it rle\_raw\_alloc}{\rm (3).}
+The arguments are pointers to the allocated storage.
+This is distinct from
+{\it rle\_freeraw}{\rm (3),}
+which only frees pixel arrays referenced by individual
+{\it rle\_op}
+structures, while
+{\it rle\_raw\_free}
+frees the storage consumed by the arrays of pointers and
+{\it rle\_op}
+structures.
+In fact, 
+{\it rle\_freeraw}
+should be called before calling
+{\it rle\_raw\_free}{\rm .}
+\shead{SEE ALSO}
+\raggedright
+{\it rle\_hdr}{\rm (3),}
+{\it rle\_op}{\rm (3),}
+{\it rle\_putraw}{\rm (3),}
+{\it rle\_getraw}{\rm (3),}
+{\it rle\_freeraw}{\rm (3),}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+%.ad b
+\shead{AUTHOR}
+Spencer W. Thomas
+\nwl
+University of Utah
+\shead{BUGS}
+The naming confusion between
+{\it rle\_freeraw}
+and
+{\it rle\_raw\_free}
+is unfortunate.
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:52 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: rle_rawtorow.3
+%
+% Copyright (c) 1990, University of Michigan
+\phead{RLE\_RAWTOROW}{3}{July,\ 1990}
+ 3
+\shead{NAME}
+rle\_rawtorow -- Convert "raw" RLE data to scanline form.
+\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\nwl
+\bf
+\#include $<$rle\_raw.h$>$
+\par\vspace{1.0\baselineskip}
+\bf
+rle\_rawtorow( the\_hdr, raw, nraw, outrows )
+\nwl
+{\bf rle\_hdr} *the\_hdr;
+\nwl
+{\bf rle\_op} **raw;
+\nwl
+{\bf int} *nraw;
+\nwl
+{\bf rle\_pixel} **outrows;
+\shead{DESCRIPTION}
+{\it Rle\_rawtorow}
+interprets the "raw" run-length encoded data in
+{\it raw}{\rm ,}
+such as might be returned by
+{\it rle\_getraw}{\rm (3),}
+and produces the corresponding scanline data in
+{\it outrows}{\rm ,}
+such as would have been returned by
+{\it rle\_getrow}{\rm (3).}
+\shead{SEE ALSO}
+\raggedright
+{\it rle\_hdr}{\rm (3),}
+{\it rle\_op}{\rm (3),}
+{\it rle\_getraw}{\rm (3),}
+{\it rle\_getrow}{\rm (3),}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+%.ad b
+\shead{AUTHOR}
+Spencer W. Thomas, after code by Rod G. Bogart and John W. Peterson.
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:53 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: rle_row_free.3
+%
+% Copyright (c) 1986, 1987, University of Utah
+\phead{RLE\_ROW\_ALLOC}{3}{2/2/87}
+ 3
+\shead{NAME}
+\begin{TPlist}{rle\_row\_alloc -- Allocate scanline memory for rle\_putrow or rle\_getrow.}
+\item[{rle\_row\_alloc -- Allocate scanline memory for rle\_putrow or rle\_getrow.}]
+%.PD 0
+\item[{rle\_row\_free -- Free scanline memory allocated by rle\_row\_alloc.}]
+%.PD
+\end{TPlist}\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\par\vspace{1.0\baselineskip}
+\bf
+rle\_row\_alloc( the\_hdr, scanp )
+\nwl
+\bf
+rle\_hdr * the\_hdr;
+\nwl
+\bf
+rle\_pixel *** scanp;
+\par\vspace{1.0\baselineskip}
+\bf
+rle\_row\_free( the\_hdr, scanp )
+\nwl
+\bf
+rle\_hdr * the\_hdr;
+\nwl
+\bf
+rle\_pixel ** scanp;
+\shead{DESCRIPTION}
+The function
+{\it rle\_row\_alloc}
+is provided to make it easier to allocate storage for use by the RLE
+functions.  It examines the
+{\it the\_hdr}
+structure provided and returns (via its other argument) newly
+allocated space suitable for reading from or writing to an RLE file
+described by the
+{\it the\_hdr}
+structure.
+{\it rle\_row\_alloc}
+allocates
+{\rm (}{\it the\_hdr}{\rm }{\it xmax}{\rm \ +\ 1)}
+bytes for each scanline, to allow for 
+{\it rle\_getrow}
+usage.  Only those rows enabled by the bit-map in
+{\it the\_hdr}
+will have memory allocated.
+
+To free memory allocated by
+{\it rle\_row\_alloc}{\rm (3),}
+call
+{\it rle\_row\_free}
+with the pointer to the allocated storage.
+\shead{SEE ALSO}
+%.nj
+{\it rle\_hdr}{\rm (3),}
+{\it rle\_getrow}{\rm (3),}
+{\it rle\_putrow}{\rm (3),}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+\shead{AUTHOR}
+Spencer W. Thomas
+\nwl
+University of Utah
+
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:53 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: rle_skiprow.3
+%
+% Copyright (c) 1986, University of Utah
+\phead{RLE\_SKIPROW}{3}{2/2/87}
+ 3
+\shead{NAME}
+rle\_skiprow -- Skip output scanlines in an RLE file.
+\shead{SYNOPSIS}
+\bf
+\#include $<$rle.h$>$
+\par\vspace{1.0\baselineskip}
+\bf
+rle\_skiprow( the\_hdr, nrow )
+\nwl
+\bf
+rle\_hdr * the\_hdr;
+\nwl
+\bf
+int nrow;
+\shead{DESCRIPTION}
+This routine is used to output blank (background) scanlines to an 
+{\it RLE}{\rm (5)}
+file.  It is used in conjunction with
+{\it rle\_putrow}{\rm (3)}
+or
+{\it rle\_putraw}{\rm (3).}
+The number of scanlines indicated by
+{\it nrow}
+will be blank in the output file.
+\shead{SEE ALSO}
+\raggedright
+{\it rle\_hdr}{\rm (3),}
+{\it rle\_put\_setup}{\rm (3),}
+{\it rle\_putrow}{\rm (3),}
+{\it rle\_putraw}{\rm (3),}
+{\it librle}{\rm (3),}
+{\it RLE}{\rm (5).}
+%.ad b
+\shead{AUTHOR}
+Spencer W. Thomas
+\nwl
+University of Utah
+\shead{BUGS}
+{\it Rle\_skiprow}
+should not be called when creating an %
+\it RLE \rm%
+file with 
+{\it the\_hdr}{\rm }{\it background}
+set to zero.  The specified number of rows will indeed be skipped, but
+they will not be filled with background when the file is read.
+\newpage
+% -*-LaTeX-*-
+% Converted automatically from troff to LaTeX by tr2tex on Tue Aug  7 17:28:54 1990
+% tr2tex was written by Kamal Al-Yahya at Stanford University
+% (Kamal%Hanauma@SU-SCORE.ARPA)
+
+
+%[troffman]{article}
+%
+%
+% input file: scanargs.3
+%
+\phead{SCANARGS}{3}{7/23/90}
+
+\shead{NAME}
+scanargs, qscanargs - formatted conversion from command argument list
+\shead{SYNOPSIS}
+{\bf \#include\ $<$stdio.h$>$}
+\par
+{\bf scanargs(argc,\ argv,\ format} 
+[, pointer]...
+{\bf )}
+\nwl
+{\bf int\ argc;}
+\nwl
+{\bf char\ *argv[];}
+\nwl
+{\bf char\ *format;}
+\shead{DESCRIPTION}
+{\it Scanargs}
+reads
+{\it argc}
+arguments from an argument list pointed to by
+{\it argv.}
+It converts the argument list according to the format string,
+and stores the results of the conversions in its parameters.
+\par
+Scanargs expects as its parameters an argument count
+{\it argc,}
+a pointer to an argument list 
+{\it argv}
+(see 
+{\it exec}{\rm (2)),}
+a control string
+{\it format,}
+described below, and a set of
+{\it pointer}
+arguments indicating where the converted output should be stored.
+\par
+The control string contains specifications, which are used to direct
+interpretation of argument sequences.  It contains
+the necessary information to describe an acceptable 
+syntax for the argument list, and the expected meaning of each argument.
+\par
+If the scanning fails it will print a cryptic 
+message telling why it failed, and generate a 
+{\it usage}
+message from the control string.
+\par
+The control string is composed of two parts:
+\par
+{\bf Name:} \ 
+The first characters in the string are assumed to be the calling 
+name of the program being executed. This is used for generation of
+usage messages, but is otherwise ignored.
+If this field is a \% sign, it is replaced with the contents of
+{\it argv}{\rm [0]}
+in the message.
+\par
+{\bf Conversions:} \ 
+Following the name, an optional list of conversion specifications is given,
+with separating spaces.  The structure of a conversion specification:
+\ind{1\parindent}
+\par
+{\bf label\_key\_conversion}
+\ind{0\parindent}
+\par
+consists of a
+{\it label}
+which is a string of non-space characters describing the acceptable
+argument, a
+{\it key}
+which may be either of
+\begin{TPlist}{{\bf \%}}
+\item[{{\bf \%}}]
+The argument is optional. Its absence is ignored.
+\item[{{\bf !}}]
+A required argument. If absent, an error return ensues.
+\end{TPlist}\par
+The
+{\it conversion}
+character indicates the interpretation of the argument; the corresponding
+pointer parameter must be of a restricted type.
+\par
+The following conversion characters are supported:
+\begin{TPlist}{{\bf d} D}
+\item[{{\bf d} D}]
+a decimal integer is expected; the corresponding parameter should be an 
+{\it int}
+or a
+{\it long}
+(if
+{\bf D}
+is specified) pointer.
+\item[{{\bf o} O}]
+an octal integer is expected; the corresponding parameter should be an 
+{\it int}
+or a
+{\it long}
+pointer.
+\item[{{\bf x} X}]
+a hexadecimal integer is expected; the corresponding parameter should be an 
+{\it int}
+or a
+{\it long}
+pointer.
+\item[{{\bf n} N}]
+an integer numeric conversion using 
+{\it C}
+language syntax.  Numbers beginning 
+{\bf 0x}
+are hexadecimal, numbers beginning
+{\bf 0}
+are octal, and other numbers are decimal.  Negative hex numbers must have
+the minus sign
+{\it following}
+the
+{\bf 0x}{\rm ,}
+i.e. negative 0xa would be given as 0x--a.  The corresponding pointer
+should point to an
+{\it int}
+or a
+{\it long.}
+\item[{{\bf f} F}]
+a floating point number is expected; the corresponding parameter should
+be a pointer to a
+{\it float}
+or a
+{\it double.}
+\item[{{\bf s}}]
+a character string is expected; the corresponding parameter should be the
+address of a pointer to
+{\it char.}
+\item[{{\bf --}}]
+a single character flag is expected; the corresponding parameter should
+be an 
+{\it int}
+pointer.  The occurrence of a
+{\bf --}
+followed by the character specified in the label
+will cause the setting of the least significant bit of the integer pointed to 
+by the corresponding parameter.  The label may consist of up to sixteen
+(actually, up to the number of bits in an %
+\it int\rm%
+) option
+characters, in which case one of the bits of the integer is independently
+set to reflect which one of the flags was present. (The right most character
+corresponds to the LSB of the integer)  Only one option may be chosen from
+each conversion specification.  The bits which are not set will remain in
+their previous state.  For example, a specification of 
+{\bf abc\%--}
+would match one of
+{\bf --a} --b
+or
+{\bf --c}
+in the argument list. 
+{\bf --c}
+would cause the corresponding variable to be set to 1, 
+{\bf --b}
+to 2, and
+{\bf --a}
+to 4.  (Actually, these bits would be ored in, but assuming an initial value
+of 0, this is true).
+\end{TPlist}\par
+\ind{1\parindent} 4
+The
+{\bf --}
+may be followed immediately by more label\_key\_conversion specifications.
+These should not be separated by blanks and should not contain any
+{\bf --}
+specifications.  They will be processed only if the flag argument is scanned.
+This allows optional specification of parameters corresponding to a flag
+(e.g.
+{\it --f} file
+).  Corresponding arguments on the command line must appear between the flag
+which introduces them and the next flag in the command line.
+\ind{0\parindent}
+\begin{TPlist}{\bf\$}
+\item[{\bf\$}]
+This may appear only as the last specifier in the format string, and is used
+to "eat up" the rest of the command arguments.  The corresponding function
+argument is an
+{\it int}
+pointer.  An index into
+{\it argv}
+to the dividing point between the arguments which have been used, and those
+which have not is returned.  This index points to the first unused command
+argument.  If there is no such dividing point, an error
+will be generated (but %
+\bf \$ \rm%
+may match zero arguments, as long as
+the entire set of arguments has already been matched).
+\end{TPlist}\par
+A string or numeric conversion character may be preceded by a
+`%
+\bf *\rm%
+' or a `%
+\bf ,\rm%
+' to indicate that a list of such arguments is
+expected.  If `%
+\bf ,\rm%
+' is used, then the AT\&T proposed argument
+standard is followed, and a single string is expected, with the
+individual list elements separated by commas or spaces.  Two commas in
+a row will produce a null entry (0 if numeric, zero-length string if
+string conversion), but multiple spaces, and spaces following a comma,
+are taken as a single separator.  If
+`%
+\bf *\rm%
+'
+is specified, then multiple arguments are parsed to produce the list.  A
+format specifier with a
+`%
+\bf *\rm%
+'
+or a
+`%
+\bf ,\rm%
+'
+takes two arguments.  The first is an
+{\bf int}
+pointer, the number of items in the list is returned here.  The second is a
+pointer to pointer to the correct data type for the format specifier.  A
+pointer to the list of arguments is returned here.
+\par
+The scanner will process the control string from left to right,
+and where there are multiple conversions of the same type, they will
+be assigned one to one with their order of occurrence in the argument list.
+Where the order of the arguments is not ambiguous in the control string,
+they may occur in any order in the argument list. (ie. A decimal number
+will not be confused with a flag, but may
+be confused with an octal number or another decimal number. So if an
+octal and a decimal number are to be arguments, their order will determine
+their conversion, while a decimal number and a flag as arguments may occur
+in any order and still be converted correctly.)
+\par
+An argument list that does not match the requirements of the control
+string will cause the printing of a short message telling why, and
+a message telling what the correct usage is.
+This usage is gleaned from the control string, and the labels are used
+directly.  The labels should be both terse and descriptive!  Spaces, tabs,
+and newlines in the format string will be reproduced in the usage message,
+and can be used for effective prettyprinting.  A single tab (following a
+newline) will indent the line directly under the command name in the usage
+message.
+\par
+The
+{\it scanargs}
+function returns 1 when the argument list matched the requirements
+of the control string, and returns 0 if there was a failure.
+Parameters for any conversions not matched are left untouched.
+\nwl
+For example, the call
+\ind{1\parindent}
+\par
+int i; double x; char *name;
+\nwl
+scanargs(argc, argv, "\% decimal\%d floating\%F file\%s",
+\ind{15.0em}
+\&i, \&x, \&name );
+\ind{0\parindent}
+\par
+in a C program executed by the shell command
+\ind{1\parindent}
+\par
+{\it \%}
+program 10 3.5397 inputfile
+\ind{0\parindent}
+\par
+will assign to 
+{\it i}
+the value 10, 
+{\it x}
+the value 3.5397, and
+{\it name}
+will point to the string "inputfile".
+\par
+If the program was executed by the shell command
+\ind{1\parindent}
+\par
+{\it \%}
+program  3.4 .7 inputfile
+\ind{0\parindent}
+\par
+the following would be printed on the standard error:
+\ind{1\parindent}
+\par
+extra arguments not processed
+\nwl
+usage : program [decimal] [floating] [file]
+\ind{0\parindent}
+\par
+because 3.4 matches the type of 'floating' and .7 matches
+the type of 'file', leaving inputfile unmatched.
+\par
+Finally, executing the command
+\ind{1\parindent}
+\nwl
+{\it \%}
+program 10
+\ind{0\parindent}
+\nwl
+would assign 10 to 
+{\it i}{\rm ,}
+leaving
+{\it x}
+and
+{\it name}
+unaffected.
+\par
+This call could be used for the 
+{\it diff}{\rm (1)}
+command
+\ind{1\parindent}
+\par
+int blanks; int flags; char *file1; char *file2;
+\nwl
+scanargs(argc, argv, "diff b\%-- efh\%-- file1!s file2!s",
+\ind{15.0em}
+\&blanks, \&flags, \&file1, \&file2 );
+\ind{0\parindent}
+\par
+and would only allow one of either 
+{\bf --e}{\rm ,\ }{\bf --f}{\rm ,}
+or
+{\bf --h}
+to be chosen optionally, with 
+{\bf --b} 
+as an independent option.
+{\bf File1}
+and
+{\bf file2}
+are both required.
+The usage message for this version of
+{\it diff}
+would be
+\ind{1\parindent}
+\par
+usage : diff [--b] --\{efh\} file1 file2
+\ind{0\parindent}
+
+This call could be used for a simplified version of the
+{\it sed}{\rm (1)}
+command
+\ind{1\parindent}
+\par
+int efile; int noprint; char *script; 
+\nwl
+char *file1; char *file2;
+\nwl
+scanargs(argc, argv, 
+\ind{15.0em}
+"sed n\%-- f\%--editfile!s script\%s file\%s",
+\ind{15.0em}
+\&noprint, \&efile, \&file1, \&script, \&file2 );
+\ind{0\parindent}
+\par
+If the
+{\bf --f}
+option is specified, then a file name must be given as the next string
+argument.
+The usage message for this version of
+{\it sed}
+would be
+\ind{1\parindent}
+\par
+usage : sed [--n] [--f editfile] [script] file
+\ind{0\parindent}
+
+\par
+Further notes on putting together a format string:
+\par
+It is possible for conditional arguments to be confused with
+arguments which stand alone.  For this reason, it is recommended that
+all flags (and associated conditional arguments) be specified first in
+the scanargs format string.  This ordering is not necessary for the
+command line arguments, however.  The only case which could still cause
+confusion if these rules are followed is illustrated below:
+\nwl
+\ind{1\parindent}
+format string:	"prog d\%--num\%d othernum\%d"
+\nwl
+command line:	prog --d 9
+\ind{0\parindent}
+\nwl
+It is unclear whether the number 9 should be associated with the 
+{\it num}
+parameter or the
+{\it othernum}
+parameter.  
+{\it Scanargs} 
+assigns it to the
+{\it num}
+parameter.  To force it to be associated with
+{\it othernum}
+the
+command could be invoked as either
+\nwl
+\ind{1\parindent}
+		prog 9 --d
+\nwl
+or		prog --d --\/-- 9
+\ind{0\parindent}
+\nwl
+The 
+{\bf --\/--}
+in the second example is interpreted as a flag, thereby
+terminating the scan for arguments introduced by the 
+{\bf --d}{\rm .}
+According to the proposed standard, an argument of
+{\bf --\/--}
+is to be interpreted as terminating the optional arguments on a flag.
+\par
+Note that if the format string in the above example were
+\nwl
+\ind{1\parindent}
+		"prog othernum\%d d\%--num\%d"
+\ind{0\parindent}
+\nwl
+it would be impossible to assign a value to 
+{\it num}
+without also
+assigning a value to 
+{\it othernum.}
+A command line of
+\ind{1\parindent}
+	prog -d 9
+\ind{0\parindent}
+would match %
+\it othernum \rm%
+with 9, leaving nothing to match %
+\it num\rm%
+.
+\shead{SEE ALSO}
+exec(2), scanf(3S)
+\shead{DIAGNOSTICS}
+Returns 0 on error, 1 on success.
+\shead{AUTHOR}
+Gary Newman --- Ampex Corporation
+\nwl
+Spencer W. Thomas --- University of Utah
+\shead{BUGS}
+By its nature a call to scanargs defines a syntax
+which may be ambiguous, and although the results may be surprising, 
+they are quite predictable.
+\end{document}

@@ -1,0 +1,42 @@
+:
+# Shellscript zur Einbindung eines Shaders in die Shaderbibliothek
+#
+#
+# Eventuell mu"s der Pfad f"ur INCLUDE ge"andert werden.
+#-------------------------------------------------------------------------
+INCLUDE="/mo2/ip/renderman"
+#-------------------------------------------------------------------------
+#
+# Aufruf: addsh shadername shaderlib  (jeweils nur Name, keine Endung)
+#
+#-------------------------------------------------------------------------
+#
+trap 'rm -f initsh.[co] $1.[co] ; exit 1 ' 1 2 15
+#
+
+USAGE="usage : addsh shadername shaderlib" 
+
+
+if test $# != 2
+then
+    echo $USAGE 1>&2
+    exit 1
+fi
+
+echo compiling $1.sh
+sc $1.sh > $1.c
+cc -c -O -w -I$INCLUDE $1.c
+echo 'updating library.'
+ar r lib$2.a $1.o
+ranlib lib$2.a
+rm -f initsh.[co] $1.[co]
+echo 'generating new init-file.'
+echo 'void RiBegin(n) char *n; {' > initsh.c
+echo '_init_all_files();' >> initsh.c
+nm -p lib$2.a | egrep 'T *__init_' | sed -e 's/^.*T *_*\(.*\)/    _\1 ();/' >> initsh.c
+echo 'RmBegin(n); }' >> initsh.c
+cc -c -O initsh.c 
+ar r lib$2.a initsh.o
+ranlib lib$2.a
+rm -f initsh.[co]
+exit 0

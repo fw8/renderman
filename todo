@@ -1,0 +1,8 @@
+- Mehr Statistik
+- Koordinaten-Raum des Shaders ber"ucksichtigen -> p = "shader" P;
+  d.h. auch Erweiterungen am sc vornehmen !
+- Schnittalgo. f"ur Poly's "uberarbeiten und Voxel-Tracing f"ur
+  Polygon-Mengen implementieren (besonderes Augenmerk hierbei auf einen
+  "guten" Plane/Box-Schnittalgorithmus haben).
+- Erweiterung der Bounding-Box-Methode auf allgemeine "bounding regions" 
+  Algorith. zur Ermittlung des jeweils g"unstigsten Verfahrens ! 
